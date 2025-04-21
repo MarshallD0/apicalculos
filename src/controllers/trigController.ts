@@ -1,92 +1,103 @@
 import { Request, Response } from 'express';
-import { getValuesByAngle, TrigValue } from '../data/base';
-
-interface TrigResponse {
-    angle: number;
-    result: string;
-}
+import { triangles, sides } from '../data/base';
 
 export class TrigController {
-    // Obtener seno de un ángulo
-    public getSine = (req: Request, res: Response) => {
+    // Calcular razones trigonométricas
+    public getTrigValues = (req: Request, res: Response) => {
         const angle = Number(req.params.angle);
-        const value = getValuesByAngle(angle);
+        const radians = this.toRadians(angle);
 
-        if (!value) {
-            return res.status(404).json({ error: 'Ángulo no encontrado en la base de datos' });
-        }
+        const sin = Math.sin(radians);
+        const cos = Math.cos(radians);
+        const tan = Math.tan(radians);
 
-        return res.json({ angle, sine: value.sin });
-    };
-
-    // Obtener coseno de un ángulo
-    public getCosine = (req: Request, res: Response) => {
-        const angle = Number(req.params.angle);
-        const value = getValuesByAngle(angle);
-
-        if (!value) {
-            return res.status(404).json({ error: 'Ángulo no encontrado en la base de datos' });
-        }
-
-        return res.json({ angle, cosine: value.cos });
-    };
-
-    // Obtener tangente de un ángulo
-    public getTangent = (req: Request, res: Response) => {
-        const angle = Number(req.params.angle);
-        const value = getValuesByAngle(angle);
-
-        if (!value) {
-            return res.status(404).json({ error: 'Ángulo no encontrado en la base de datos' });
-        }
-
-        return res.json({ angle, tangent: value.tan });
-    };
-
-    // Obtener todos los valores trigonométricos de un ángulo
-    public getAllValues = (req: Request, res: Response) => {
-        const angle = Number(req.params.angle);
-        const value = getValuesByAngle(angle);
-
-        if (!value) {
-            return res.status(404).json({ error: 'Ángulo no encontrado en la base de datos' });
-        }
-
-        return res.json(value);
-    };
-
-    // Obtener todos los valores trigonométricos y evaluarlos
-    async getTrigValues(angle: number): Promise<TrigResponse> {
-        try {
-            const value: TrigValue | undefined = getValuesByAngle(angle);
-
-            if (!value) {
-                throw new Error('Ángulo no encontrado en la base de datos');
-            }
-
-            return this.evaluateTrigValues(value);
-        } catch (error) {
-            throw new Error('Error obteniendo valores trigonométricos');
-        }
-    }
-
-    // Evaluar los valores trigonométricos
-    private evaluateTrigValues(value: TrigValue): TrigResponse {
-        const { angle, sin, cos, tan } = value;
-
+        let result = 'Valores trigonométricos calculados correctamente';
         if (sin === 1) {
-            return { angle, result: 'El seno es máximo en este ángulo' };
+            result = 'El seno es máximo en este ángulo';
+        } else if (cos === 1) {
+            result = 'El coseno es máximo en este ángulo';
+        } else if (!isFinite(tan)) {
+            result = 'La tangente es indefinida en este ángulo';
         }
 
-        if (cos === 1) {
-            return { angle, result: 'El coseno es máximo en este ángulo' };
-        }
+        return res.json({ angle, sin, cos, tan, result });
+    };
 
-        if (tan === Infinity) {
-            return { angle, result: 'La tangente es indefinida en este ángulo' };
-        }
+    // Calcular todas las áreas de los triángulos
+    public calculateTriangleArea = (req: Request, res: Response) => {
+        const areas = triangles.map(triangle => ({
+            base: triangle.base,
+            height: triangle.height,
+            area: (triangle.base * triangle.height) / 2,
+        }));
 
-        return { angle, result: 'Valores trigonométricos calculados correctamente' };
+        return res.json(areas);
+    };
+
+    // Calcular todas las hipotenusas de los triángulos rectángulos
+    public calculateHypotenuse = (req: Request, res: Response) => {
+        const hypotenuses = sides.map(side => ({
+            sideA: side.sideA,
+            sideB: side.sideB,
+            hypotenuse: Math.sqrt(side.sideA ** 2 + side.sideB ** 2),
+        }));
+
+        return res.json(hypotenuses);
+    };
+
+    // Calcular todos los valores trigonométricos para ángulos comunes
+    public calculateAllTrigValues = (req: Request, res: Response) => {
+        const angles = [0, 30, 45, 60, 90];
+        const trigValues = angles.map(angle => {
+            const radians = this.toRadians(angle);
+            return {
+                angle,
+                sin: Math.sin(radians),
+                cos: Math.cos(radians),
+                tan: isFinite(Math.tan(radians)) ? Math.tan(radians) : 'undefined',
+            };
+        });
+
+        return res.json(trigValues);
+    };
+
+    // Calcular todos los datos
+    public calculateAllData = (req: Request, res: Response) => {
+        const trianglesData = triangles.map(triangle => ({
+            base: triangle.base,
+            height: triangle.height,
+            area: (triangle.base * triangle.height) / 2,
+        }));
+
+        const sidesData = sides.map(side => ({
+            sideA: side.sideA,
+            sideB: side.sideB,
+            hypotenuse: Math.sqrt(side.sideA ** 2 + side.sideB ** 2),
+        }));
+
+        const angles = [0, 30, 45, 60, 90];
+        const trigValues = angles.map(angle => {
+            const radians = this.toRadians(angle);
+            return {
+                angle,
+                sin: Math.sin(radians),
+                cos: Math.cos(radians),
+                tan: isFinite(Math.tan(radians)) ? Math.tan(radians) : 'undefined',
+            };
+        });
+
+        const results = {
+            triangles: trianglesData,
+            sides: sidesData,
+            trigonometry: trigValues,
+        };
+
+        return res.json(results);
+    };
+
+    // Convertir grados a radianes
+    private toRadians(angle: number): number {
+        return (angle * Math.PI) / 180;
     }
 }
 
